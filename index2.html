@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner QR Code</title>
+
+    <!-- Inclusion de Font Awesome pour l'icône de la caméra -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Styles pour l'overlay (modale) qui va apparaître au-dessus des autres éléments */
+        #videoOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Fond semi-transparent */
+            display: none; /* Caché au début */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Place l'overlay au-dessus de tout le contenu */
+        }
+
+        /* Styles pour l'élément vidéo dans l'overlay */
+        #preview {
+            max-width: 80%; /* Limite la taille de la vidéo */
+            max-height: 80%;
+            border: 1px solid white;
+        }
+
+        /* Style pour le bouton de fermeture */
+        #closeButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            border-radius: 50%;
+        }
+
+        /* Style du bouton de démarrage */
+        #startScanButton {
+            font-size: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        /* Styles pour le contenu du QR Code trouvé */
+        #qrCodeContent {
+            font-size: 1.5em;
+            color: white;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scanner QR Code</h1>
+    <p>Scannez un QR Code avec votre caméra en cliquant sur le bouton ci-dessous :</p>
+
+    <!-- Bouton pour démarrer le scanner avec l'icône de la caméra -->
+    <button id="startScanButton">
+        <i class="fas fa-camera"></i> Démarrer le scan
+    </button>
+
+    <!-- L'overlay pour afficher la vidéo avec le bouton de fermeture -->
+    <div id="videoOverlay">
+        <!-- Bouton de fermeture de l'overlay -->
+        <button id="closeButton">X</button>
+
+        <!-- Élément vidéo qui affiche le flux de la caméra -->
+        <video id="preview" style="display: block;"></video>
+
+        <!-- Contenu du QR Code trouvé (initialement vide) -->
+        <div id="qrCodeContent" style="display: none;"></div>
+    </div>
+
+    <!-- Div pour afficher le résultat du QR code scanné -->
+    <div id="result" style="margin-top: 20px; font-size: 1.2em; color: green;"></div>
+
+    <!-- Inclusion de la bibliothèque jsQR depuis un CDN -->
+    <script src="https://unpkg.com/jsqr"></script>
+
+    <script>
+        const video = document.getElementById('preview');
+        const canvasElement = document.createElement('canvas');
+        const canvas = canvasElement.getContext('2d');
+        const resultDiv = document.getElementById('result');
+        const startScanButton = document.getElementById('startScanButton');
+        const videoOverlay = document.getElementById('videoOverlay');
+        const closeButton = document.getElementById('closeButton');
+        const qrCodeContentDiv = document.getElementById('qrCodeContent');
+
+        // Fonction pour démarrer la caméra et afficher le flux vidéo
+        function startCamera() {
+            // Demande l'accès à la caméra de l'utilisateur (caméra arrière sur les téléphones)
+            navigator.mediaDevices
+                .getUserMedia({ video: { facingMode: 'environment' } })
+                .then((stream) => {
+                    // Associe le flux vidéo à l'élément vidéo sur la page
+                    video.srcObject = stream;
+
+                    // Cette ligne est pour iPhone afin de jouer la vidéo sans ouvrir l'application caméra
+                    video.setAttribute('playsinline', true);
+
+                    // Affiche la vidéo dans l'overlay (modale)
+                    video.style.display = 'block';
+
+                    // Affiche l'overlay
+                    videoOverlay.style.display = 'flex';
+
+                    // Lance la lecture de la vidéo
+                    video.play();
+
+                    // Démarre la fonction scanQRCode pour analyser les frames de la vidéo
+                    requestAnimationFrame(scanQRCode);
+                });
+        }
+
+        // Fonction pour scanner le QR code dans le flux vidéo
+        function scanQRCode() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+
+                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: 'dontInvert',
+                });
+
+                if (code) {
+                    // Cache la vidéo et montre le contenu du QR Code trouvé
+                    video.style.display = 'none';
+                    qrCodeContentDiv.style.display = 'block';
+
+                    // Affiche le contenu du QR Code dans l'overlay
+                    qrCodeContentDiv.textContent = `QR Code scanné : ${code.data}`;
+
+                    // Affiche aussi le résultat sous l'overlay
+                    resultDiv.textContent = `QR Code scanné : ${code.data}`;
+
+                    console.log(`QR Code scanné : ${code.data}`);
+                }
+            }
+            requestAnimationFrame(scanQRCode);
+        }
+
+        // Événement pour démarrer le scan lorsque le bouton est cliqué
+        startScanButton.addEventListener('click', () => {
+            startCamera(); // Démarre la caméra
+            startScanButton.style.display = 'none'; // Cache le bouton une fois cliqué
+        });
+
+        // Événement pour fermer l'overlay et arrêter la vidéo
+        closeButton.addEventListener('click', () => {
+            // Arrête la vidéo
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop()); // Arrête tous les flux de la vidéo
+
+            // Cache l'overlay vidéo et réaffiche le bouton de scan
+            videoOverlay.style.display = 'none';
+            startScanButton.style.display = 'block';
+
+            // Cache le contenu du QR Code
+            qrCodeContentDiv.style.display = 'none';
+            video.style.display = 'block'; // Réaffiche la vidéo pour le prochain scan
+        });
+    </script>
+</body>
+</html>
