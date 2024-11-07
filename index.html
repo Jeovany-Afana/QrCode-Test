@@ -1,58 +1,112 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner QR Code</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Document</title>
 </head>
+
+<style>
+    /* Style pour le QR CODE */
+#qrcode-container {
+    display: none; /* Cacher par défaut */
+    position: fixed; /* Positionnement fixe */
+    top: 50%; /* Centrer verticalement */
+    left: 50%; /* Centrer horizontalement */
+    transform: translate(-50%, -50%); /* Ajuster pour centrer correctement */
+    z-index: 1000; /* Au-dessus d'autres éléments */
+    background-color: white; /* Fond blanc */
+    padding: 20px; /* Espacement interne */
+    border-radius: 10px; /* Coins arrondis */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Ombre */
+  }
+  
+  #qrcode {
+    width: 300px; 
+    height: 300px; 
+    background: linear-gradient(120deg, blue, white);
+    padding: 10px;
+  
+  }
+  
+  .button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: blue;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    margin-top: 20px; /* Espacement au-dessus du bouton */
+  }
+  
+  .close-button {
+    background-color: red; /* Couleur rouge pour le bouton de fermeture */
+  }
+  
+  .overlay {
+    display: none; /* Cacher l'overlay par défaut */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Fond semi-transparent */
+    z-index: 500; /* Au-dessus d'autres éléments */
+  } */
+  
+  h2 {
+    margin: 0; /* Enlever le marges par défaut */
+  }
+  
+</style>
+
 <body>
-    <h1>Scanner QR Code</h1>
-    <p>Scannez un QR Code avec votre caméra</p>
 
-    <video id="preview" width="40%" height="40%" style="border: 1px solid black;"></video>
-    <div id="result" style="margin-top: 20px; font-size: 1.2em; color: green;"></div>
+    <!-- QR Code -->
+<i class="fas fa-qrcode home-button" id="generateQRCode" style="font-size: 40px; cursor: pointer;"></i>
+<div class="overlay" id="overlay"></div>
+<div id="qrcode-container">
+  <h2>QR Code de l'étudiant</h2>
+  <div id="qrcode"></div>
+  <button class="button close-button" id="closeQRCode">Fermer</button> <!-- Bouton pour fermer -->
+</div>
+<br>
 
-    <script src="https://unpkg.com/jsqr"></script>
-    <script>
-        const video = document.getElementById('preview');
-        const canvasElement = document.createElement('canvas');
-        const canvas = canvasElement.getContext('2d');
-        const resultDiv = document.getElementById('result');
+<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+<script>
 
-        // Fonction pour démarrer la caméra
-        function startCamera() {
-            navigator.mediaDevices
-                .getUserMedia({ video: { facingMode: 'environment' } })
-                .then((stream) => {
-                    video.srcObject = stream;
-                    video.setAttribute('playsinline', true); // pour iPhone
-                    video.play();
-                    requestAnimationFrame(scanQRCode);
-                });
-        }
+document
+  .getElementById("generateQRCode")
+  .addEventListener("click", function () {
 
-        // Fonction pour scanner le QR code
-        function scanQRCode() {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvasElement.height = video.videoHeight;
-                canvasElement.width = video.videoWidth;
-                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+      // Afficher le QR code et l'overlay
+      document.getElementById("qrcode-container").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
 
-                const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: 'dontInvert',
-                });
+      // Générer le QR code avec des informations
+      var qrcode = new QRCode(document.getElementById("qrcode"), {
+        text: "Campus-Inspect",
+        width: 300,
+        height: 300,
+        colorDark: "#000000", // Couleur unie (noir)
+        colorLight: "#ffffff", // Fond blanc
+        correctLevel: QRCode.CorrectLevel.H, // Niveau de correction des erreurs
+      });
+   
+  });
 
-                if (code) {
-                    // Affiche le résultat dans le div
-                    resultDiv.textContent = `QR Code scanné : ${code.data}`;
-                    console.log(`QR Code scanné : ${code.data}`); // Affiche le résultat dans la console
-                }
-            }
-            requestAnimationFrame(scanQRCode);
-        }
+// Événement pour fermer le QR code
+document.getElementById("closeQRCode").addEventListener("click", function () {
+  // Masquer le QR code, l'overlay et le bouton Fermer
+  document.getElementById("qrcode-container").style.display = "none";
+  document.getElementById("qrcode").innerHTML = "";
+  document.getElementById("overlay").style.display = "none";
+});
 
-        startCamera();  // Démarre la caméra dès le chargement de la page
-    </script>
+
+
+</script>
 </body>
 </html>
